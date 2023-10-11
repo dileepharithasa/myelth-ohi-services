@@ -1,0 +1,127 @@
+openapi: 3.0.0
+info:
+  title: Myelth Ohi provider services
+  description: Myelth Ohi provider services
+  version: 1.0.0
+
+paths:
+  /providers:
+    post:
+      summary: create provider
+      operationId: createProviders
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                filename:
+                  type: object
+                  items:
+                    type: string
+                    format: binary
+
+      responses:
+        '200':
+          description: Excel sheet successfully uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Excel sheet uploaded successfully.
+                  fileId:
+                    type: string
+                    example: 12345
+        '400':
+          description: Invalid request or missing file
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid request. Please provide an Excel file.
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: An internal server error occurred while processing the request.
+
+components:
+  schemas:
+    ProviderSpecialty:
+      type: object
+      properties:
+        id:
+          type: integer
+        objectVersionNumber:
+          type: integer
+    RenderingAddress:
+      type: object
+      properties:
+        id:
+          type: integer
+        objectVersionNumber:
+          type: integer
+
+
+    FlexCodeSystem:
+      type: object
+      properties:
+        id:
+          type: integer
+    Provider:
+      type: object
+      properties:
+        renderingAddressList:
+          type: array
+          items:
+            $ref: '#/components/schemas/RenderingAddress'
+        roviderSpecialtyList:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderSpecialty'
+
+        code:
+          type: string
+        flexCodeDefinitionCode:
+          type: string
+        functionDynamicLogicId:
+          type: integer
+          #format: int64
+        value:
+          type: string
+        objectLastUpdatedDate:
+          type: string
+          format: date
+          example: '2022-07-01'
+        firstName:
+          type: string
+        gender:
+          type: string
+        subtype:
+          type: string
+        language:
+          type: string
+        objectLastUpdatedBy:
+          type: string
+        startDate:
+          type: string
+          format: date
+          example: '2022-07-01'
+        name:
+          type: string
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
