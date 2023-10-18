@@ -80,6 +80,27 @@
             <version>5.9.2</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+            <version>3.1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>5.0.0</version> <!-- Use the latest version available -->
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.0.0</version> <!-- Use the latest version available -->
+        </dependency>
 
 
     </dependencies>
@@ -138,6 +159,9 @@
                                 <java8>true</java8>
                                 <useBeanValidation>true</useBeanValidation>
                             </configOptions>
+                            <importMappings>
+                                 <importMapping>ResponseData=com.rxtransaction.common.model.ResponseData</importMapping>
+                            </importMappings>
                         </configuration>
                     </execution>
                 </executions>
