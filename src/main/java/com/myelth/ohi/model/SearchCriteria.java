@@ -1,7 +1,7 @@
 package com.myelth.ohi.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,7 +12,7 @@ import java.io.Serializable;
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonIgnoreProperties
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class CountryRegion implements Serializable {
-    private String code;
+public class SearchCriteria  implements Serializable {
+    private Resource resource;
+
 }

@@ -1,4 +1,4 @@
-package com.myelth.ohi.model;
+package com.myelth.ohi.exceptions;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 @Builder
-public class ObjectLastUpdatedDate {
-    String value;
+public class ApiError extends RuntimeException {
+    private String code;
+    private String message;
+    private String status;
 }

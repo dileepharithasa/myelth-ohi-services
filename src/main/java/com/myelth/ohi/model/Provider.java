@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.util.List;
 
 @Data
@@ -13,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 @JsonIgnoreProperties
-public class Provider {
+public class Provider implements Serializable {
 
     private String id;
     private String code;
@@ -30,14 +31,11 @@ public class Provider {
     private String npi;
     private String objectLastUpdatedBy;
     private String objectVersionNumber;
-    private ObjectLastUpdatedDate objectLastUpdatedDate;
     private FlexCodeSystem flexCodeSystem;
     private FunctionDynamicLogic functionDynamicLogic;
     private Language language;
-    //private List<RenderingAddress> renderingAddressList = null;
-   // private ProviderType BSC_PROVIDER_TYPE;
-
-    //private List<ProviderSpecialty> providerSpecialtyList = null;
+    private List<RenderingAddress> renderingAddressList = null;
+    private ProviderType BSC_PROVIDER_TYPE;
 
 }
 
