@@ -25,4 +25,10 @@ public interface OhiFeignClient {
     @PostMapping("/individualproviders")
     Optional<Provider> createIndividualProviders(Provider provider);
 
+    @GetMapping("/individualproviders/{providerId}")
+    Optional<ServiceAddress> getIndividualProvider(String providerId);
+
+    @PostMapping("/individualproviders/search")
+    Optional<ServiceAddress> getIndividualProvider(SearchCriteria searchCriteria);
+
 }

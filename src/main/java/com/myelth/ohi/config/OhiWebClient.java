@@ -22,7 +22,6 @@ public class OhiWebClient {
         return WebClient.builder()
                 .baseUrl(ohiBaseUrl).defaultHeaders(httpHeaders -> {
                     httpHeaders.setBasicAuth(ohiUserName, ohiPassword);
-                })
-                .build();
+                }).build();
     }
 }
