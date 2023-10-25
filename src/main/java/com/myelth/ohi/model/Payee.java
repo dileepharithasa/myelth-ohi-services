@@ -24,14 +24,15 @@ public class Payee implements Serializable {
     private String payeeTransferID;
     private String payeeBankRoutingNumber;
     private String payeeEffectiveDate;
+    private String payeeTermDate;
     private String payeePayToAddress1;
     private String payeeBankAccountNumber;
     private String payeeUpdateDate;
     private String payeeBankName;
     private String payeePayToCity;
-    private String payeeTermDate;
     private String payeeComments;
     private String payeePayToZip;
+    private String programName;
     private String programID;
     private String payeeCreateDate;
     private String payeePayToAddress;

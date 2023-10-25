@@ -37,6 +37,8 @@ public class Provider implements Serializable {
     private List<RenderingAddress> renderingAddressList = null;
     private ProviderType BSC_PROVIDER_TYPE;
     private List<Payee> payee_details_page_new;
+    private List<ProviderProgram> providerGroupAffiliationList;
+    private List<ServiceAddress> serviceAddressList;
 
 }
 

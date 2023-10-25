@@ -11,10 +11,8 @@ public class FeignClientConfiguration {
 
     @Value("${ohi.username}")
     private String username;
-
     @Value("${ohi.password}")
     private String password;
-
     @Bean
     public BasicAuthRequestInterceptor basicAuthRequestInterceptor() {
         return new BasicAuthRequestInterceptor(username, password);

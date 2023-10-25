@@ -1,11 +1,7 @@
 package com.myelth.ohi.utils;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.myelth.ohi.model.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Row;
 
 import java.util.ArrayList;
@@ -35,20 +31,32 @@ public class DomainPopulate {
         providerDto.setFunctionDynamicLogic(functionDynamicLogic);
         Language language = new Language();
         language.setId("20");
+        //create API
         providerDto.setLanguage(language);
-        providerDto.setStartDate("2022-01-01");
+        String startDate = row.getCell(10 ).getStringCellValue();
+        if(StringUtils.isNotEmpty(startDate)) {
+            providerDto.setStartDate(DateFormatConversion.convertDateToOhiFormat(startDate));
+        }
+       // providerDto.setStartDate("2022-01-01");
         String type = row.getCell(9).getStringCellValue();
         ProviderType providerType = new ProviderType();
         providerType.setValue(type);
         providerDto.setBSC_PROVIDER_TYPE(providerType);
         providerType.setFlexCodeDefinitionCode("bsc_Provider_type");
         ServiceAddress serviceAddress = populateAddress(row);
-        List<RenderingAddress> renderingAddressList = new ArrayList<>();
-        RenderingAddress renderingAddress = new RenderingAddress();
-        renderingAddress.setServiceAddress(serviceAddress);
-        renderingAddress.setStartDate("2022-06-08");
-        renderingAddressList.add(renderingAddress);
-        providerDto.setRenderingAddressList(renderingAddressList);
+        List<ServiceAddress> serviceAddressList = new ArrayList<>();
+        if(StringUtils.equalsAnyIgnoreCase("P", type)){
+            List<RenderingAddress> renderingAddressList = new ArrayList<>();
+            RenderingAddress renderingAddress = new RenderingAddress();
+            renderingAddress.setServiceAddress(serviceAddress);
+            renderingAddress.setStartDate("2022-06-08");
+            renderingAddressList.add(renderingAddress);
+            providerDto.setRenderingAddressList(renderingAddressList);
+        }else if(StringUtils.containsAnyIgnoreCase(type, new String[]{"I", "F", "G"})){
+            serviceAddressList.add(serviceAddress);
+            providerDto.setServiceAddressList(serviceAddressList);
+        }
+
         return providerDto;
     }
 
@@ -111,5 +119,20 @@ public class DomainPopulate {
         payee.setPayeePaymentMethod(payeePaymentMethod);
 
         return payee;
+    }
+
+    public static ProviderProgram populateProgram(Row row) {
+        ProviderProgram providerProgram = new ProviderProgram();
+        providerProgram.setProviderId(row.getCell(0).getStringCellValue());
+        providerProgram.setProgramName(row.getCell(1).getStringCellValue());
+        providerProgram.setProceduralGroupType(row.getCell(2).getStringCellValue());
+        providerProgram.setEffectiveDate(row.getCell(3).getStringCellValue());
+        providerProgram.setTerminationDate(row.getCell(4).getStringCellValue());
+        providerProgram.setLob(row.getCell(5).getStringCellValue());
+        providerProgram.setRate(row.getCell(6).getStringCellValue());
+        if(StringUtils.isNotEmpty(providerProgram.getEffectiveDate())) {
+            providerProgram.setStartDate(DateFormatConversion.convertDateToOhiFormat(providerProgram.getEffectiveDate()));
+        }
+        return providerProgram;
     }
 }

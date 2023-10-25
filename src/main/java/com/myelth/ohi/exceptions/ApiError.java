@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 @Builder
-public class ApiError extends RuntimeException {
+public class ApiError  {
     private String code;
     private String message;
     private String status;
