@@ -1,9 +1,9 @@
 package com.myelth.ohi.external;
 
 import com.myelth.ohi.config.FeignClientConfiguration;
-import com.myelth.ohi.model.*;
-import com.myelth.ohi.model.response.ApiResponse;
-import org.springframework.cache.annotation.Cacheable;
+import com.myelth.ohi.model.Provider;
+import com.myelth.ohi.model.SearchCriteria;
+import com.myelth.ohi.model.ServiceAddress;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;

@@ -6,7 +6,7 @@ import com.myelth.ohi.external.OhiFeignClient;
 import com.myelth.ohi.model.*;
 import com.myelth.ohi.model.response.ApiItem;
 import com.myelth.ohi.model.response.ApiResponse;
-import com.myelth.ohi.utils.DomainPopulate;
+import com.myelth.ohi.utils.DomainBuilder;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.*;
@@ -38,8 +38,18 @@ public class OHIProviderService {
         return providerList.stream()
                 .map(provider -> {
                     if(StringUtils.equals("P", provider.getBSC_PROVIDER_TYPE().getValue())) {
-                        Optional<ServiceAddress> serviceAddress = this.createServiceAddress(provider.getRenderingAddressList().get(0).getServiceAddress());
-                        provider.getRenderingAddressList().get(0).setServiceAddress(ServiceAddress.builder().id(serviceAddress.get().getId()).build());
+                      List<RenderingAddress> renderingAddressList = new ArrayList<>();
+                        provider.getRenderingAddressList().forEach(r->{
+                            RenderingAddress reD = new RenderingAddress();
+                            reD.setStartDate(r.getStartDate());
+
+                                    Optional<ServiceAddress> serviceAddressOptional = this.createServiceAddress(r.getServiceAddress());
+                            if(serviceAddressOptional.isPresent()){
+                                reD.setServiceAddress(ServiceAddress.builder().id(serviceAddressOptional.get().getId()).startDate(serviceAddressOptional.get().getStartDate()).build());
+                            }
+                            renderingAddressList.add(reD);
+                        });
+                        provider.setRenderingAddressList(renderingAddressList);
                         return ohiFeignClient.createIndividualProviders(provider);
                     }
                     return ohiFeignClient.createOrganizationProviders(provider);
@@ -71,6 +81,31 @@ public class OHIProviderService {
         return (optionalAddress.isPresent()) ? optionalAddress : ohiFeignClient.createServiceAddress(serviceAddress);
     }
 
+//    private static String getQueryString(ServiceAddress address) {
+//        List<String> conditions = new ArrayList<>();
+//        StringJoiner joiner = new StringJoiner(".and.");
+//
+//        if (StringUtils.isNoneEmpty(address.getStartDate())) {
+//            conditions.add("startDate.eq('%s')");
+//        }
+//        if (StringUtils.isNoneEmpty(address.getCity())) {
+//            conditions.add("city.eq('%s')");
+//        }
+//        if (StringUtils.isNoneEmpty(address.getPostalCode())) {
+//            conditions.add("postalCode.eq('%s')");
+//        }
+//        if (StringUtils.isNoneEmpty(address.getStreet())) {
+//            conditions.add("street.eq('%s')");
+//        }
+//        if (StringUtils.isNoneEmpty(address.getHouseNumber())) {
+//            conditions.add("houseNumber.eq('%s')");
+//        }
+//        if (!conditions.isEmpty()) {
+//            joiner.add(String.join(".and.", conditions));
+//        }
+//        return joiner.toString();
+//    }
+
     private static String getQueryString(ServiceAddress address) {
         StringBuilder builder = new StringBuilder();
 
@@ -98,6 +133,7 @@ public class OHIProviderService {
         return query;
     }
 
+
     @Cacheable(value = "programsCache", key = "#result ?: 'nullResult'")
     public Map<String, Program> getCachedProviderGroups() throws JsonProcessingException {
         Resource resource = new Resource();
@@ -108,8 +144,6 @@ public class OHIProviderService {
         String jsonResponse = response.getBody();
         ApiResponse apiResponse = new ObjectMapper().readValue(jsonResponse, ApiResponse.class);
         List<ApiItem> apiItems = apiResponse.getItems();
-        List<Optional<Program>> programs = new ArrayList<>();
-
         List<Program> ps = apiItems.stream().map(apiItem -> new ObjectMapper().convertValue(apiItem, Program.class))
                 .collect(Collectors.toList());
         Map<String, Program> programMap = new HashMap<>();
@@ -130,7 +164,9 @@ public class OHIProviderService {
         if (CollectionUtils.isEmpty(files)) {
             throw new IllegalArgumentException("No files are uploaded");
         }
+        Map<String, Provider> providerRequestMap = new HashMap<>();
         for (MultipartFile file : files) {
+
             String fileName = file.getOriginalFilename();
             try (InputStream inputStream = file.getInputStream()) {
                 Workbook workbook = new XSSFWorkbook(inputStream);
@@ -149,7 +185,14 @@ public class OHIProviderService {
                         if (domainObject != null) {
                             listToPopulate.add(domainObject);
                             if (domainObject.getObject() instanceof Provider) {
-                                providerListToSave.add((Provider) domainObject.getObject());
+                                Provider providerReq = (Provider) domainObject.getObject();
+                                if(providerRequestMap.containsKey(providerReq.getId())){
+                                    Provider updatedProviderReq  = providerRequestMap.get(providerReq.getId());
+                                    updatedProviderReq.getRenderingAddressList().addAll(providerReq.getRenderingAddressList());
+                                    providerRequestMap.put(providerReq.getId(), updatedProviderReq);
+                                }else {
+                                    providerRequestMap.put(providerReq.getId(), providerReq);
+                                }
                             } else if (domainObject.getObject() instanceof Payee) {
                                 payeeList.add((Payee) domainObject.getObject());
                             }else if (domainObject.getObject() instanceof ProviderProgram) {
@@ -162,14 +205,24 @@ public class OHIProviderService {
                 throw new Exception("Error in file processing");
             }
         }
+        providerListToSave = new ArrayList<>(providerRequestMap.values());
         List<Payee> payeesTobeUpdated = new ArrayList<>();
-        ArrayList<Payee> providerProgramsTobeUpdated = new ArrayList<>();
-        Map<String, List<Payee>> payeeMap = payeeList.stream().collect(Collectors.groupingBy(Payee::getProviderCode));
+        ArrayList<ProviderProgram> providerProgramsTobeUpdated = new ArrayList<>();
         Map<String, Program> programsCachedMap = selfOhiService.getCachedProviderGroups();
+
+        payeeList.forEach(payee->{
+            if(programsCachedMap.containsKey(payee.getProgramName())){
+                Program cachedProgram = programsCachedMap.get(payee.getProgramName());
+                payee.setProgramID(cachedProgram.getCode());
+            }
+        });
+        Map<String, List<Payee>> payeeMap = payeeList.stream().collect(Collectors.groupingBy(Payee::getProviderId));
+
         providerProgramList.forEach(providerProgram->{
             if(programsCachedMap.containsKey(providerProgram.getProgramName())){
                 Program cachedProgram = programsCachedMap.get(providerProgram.getProgramName());
                 providerProgram.setProviderGroup(ProviderGroup.builder().id(cachedProgram.getId()).build());
+                providerProgram.setProgramId(cachedProgram.getId());
             }
         });
         Map<String, List<ProviderProgram>> providerProgramMap = providerProgramList.stream().collect(Collectors.groupingBy(ProviderProgram::getProviderId));
@@ -183,7 +236,7 @@ public class OHIProviderService {
             List<ProviderProgram> providerProgramListToSave = providerProgramMap.getOrDefault(key, new ArrayList<>());
             provider.setProviderGroupAffiliationList(providerProgramListToSave);
             if (!providerProgramMap.containsKey(key)) {
-                providerProgramsTobeUpdated.addAll(payeeListForProvider);
+                providerProgramsTobeUpdated.addAll(providerProgramListToSave);
             }
 
         });
@@ -191,13 +244,13 @@ public class OHIProviderService {
     }
     private DomainObject<?> populateDomainObject(Row row, String fileName) {
         if (fileName.startsWith("Provider")) {
-            Provider provider = DomainPopulate.populateProvider(row);
+            Provider provider = DomainBuilder.buildProvider(row);
             return new DomainObject<>(provider);
         } else if (fileName.contains("Payee")) {
-            Payee payee = DomainPopulate.populatePayee(row);
+            Payee payee = DomainBuilder.buildPayee(row);
             return new DomainObject<>(payee);
         }else if (fileName.startsWith("Program")) {
-            ProviderProgram providerProgram = DomainPopulate.populateProgram(row);
+            ProviderProgram providerProgram = DomainBuilder.populateProgram(row);
             return new DomainObject<>(providerProgram);
         }
         return null;

@@ -1,7 +1,6 @@
 package com.myelth.ohi.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.myelth.ohi.model.response.ApiItem;
 import com.myelth.ohi.model.response.ApiLink;
 import com.myelth.ohi.model.response.DateWrapper;
 import lombok.AllArgsConstructor;

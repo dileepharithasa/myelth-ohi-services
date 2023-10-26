@@ -15,7 +15,6 @@ import java.util.List;
 public class ResponseData<T> implements Serializable {
     private String message;
     private T data;
-
     public ResponseData(List<Provider> providerResponses) {
         this.data = (T) providerResponses;
     }

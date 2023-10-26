@@ -36,8 +36,11 @@ public class Payee implements Serializable {
     private String programID;
     private String payeeCreateDate;
     private String payeePayToAddress;
+    private String tin;
+    private String legalEntity;
+    private String w9EffectiveDate;
+    private String w9TerminationDate;
     private FlexCodeDefinition payeePayToState;
     private FlexCodeDefinition payeePaymentMethod;
     private FlexCodeDefinition payeeBankAccountType;
-
 }
