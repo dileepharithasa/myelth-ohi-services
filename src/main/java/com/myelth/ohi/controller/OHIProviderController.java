@@ -1,6 +1,5 @@
 package com.myelth.ohi.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.myelth.ohi.model.Provider;
 import com.myelth.ohi.model.ResponseData;
 import com.myelth.ohi.service.OHIProviderService;
