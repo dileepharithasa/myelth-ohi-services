@@ -16,36 +16,35 @@ public class DomainBuilder {
 
     public static Provider buildProvider(Row row) {
 
-        Provider providerDto = new Provider();
+        Provider provider = new Provider();
         String code = row.getCell(0).getStringCellValue();
-        providerDto.setCode(code);
-        providerDto.setName(row.getCell(1).getStringCellValue());
-        providerDto.setGender("M");
-        //providerDto.setSubtype("NPI");
+        provider.setCode(code);
+        provider.setName(row.getCell(1).getStringCellValue());
+        provider.setGender("M");
+        //provider.setSubtype("NPI");
         String npi = row.getCell(7).getStringCellValue();
-        providerDto.setNpi(npi);
+        provider.setNpi(npi);
         String tin = row.getCell(8).getStringCellValue();
-        providerDto.setBscTin(tin);
-        providerDto.setValue(code);
+        provider.setBscTin(tin);
+        provider.setValue(code);
         FlexCodeSystem flexCodeSystem = new FlexCodeSystem();
         flexCodeSystem.setId("291");
-        providerDto.setFlexCodeSystem(flexCodeSystem);
+        provider.setFlexCodeSystem(flexCodeSystem);
         FunctionDynamicLogic functionDynamicLogic = new FunctionDynamicLogic();
         functionDynamicLogic.setId("401");
-        providerDto.setFunctionDynamicLogic(functionDynamicLogic);
+        provider.setFunctionDynamicLogic(functionDynamicLogic);
         Language language = new Language();
         language.setId("20");
         //create API
-        providerDto.setLanguage(language);
+        provider.setLanguage(language);
         String startDate = row.getCell(10).getStringCellValue();
         if (StringUtils.isNotEmpty(startDate)) {
-            providerDto.setStartDate(DateFormatConversion.convertDateToOhiFormat(startDate));
+            provider.setStartDate(DateFormatConversion.convertDateToOhiFormat(startDate));
         }
-        // providerDto.setStartDate("2022-01-01");
         String type = row.getCell(9).getStringCellValue();
         ProviderType providerType = new ProviderType();
         providerType.setValue(type);
-        providerDto.setBSC_PROVIDER_TYPE(providerType);
+        provider.setBSC_PROVIDER_TYPE(providerType);
         providerType.setFlexCodeDefinitionCode("bsc_Provider_type");
         ServiceAddress serviceAddress = buildAddress(row);
         List<ServiceAddress> serviceAddressList = new ArrayList<>();
@@ -53,35 +52,31 @@ public class DomainBuilder {
             List<RenderingAddress> renderingAddressList = new ArrayList<>();
             RenderingAddress renderingAddress = new RenderingAddress();
             renderingAddress.setServiceAddress(serviceAddress);
-            renderingAddress.setStartDate("2022-06-08");
+            renderingAddress.setStartDate(DateFormatConversion.convertDateToOhiFormat(startDate));
             renderingAddressList.add(renderingAddress);
-            providerDto.setRenderingAddressList(renderingAddressList);
+            provider.setRenderingAddressList(renderingAddressList);
         } else if (StringUtils.containsAnyIgnoreCase(type, new String[]{"I", "F", "G"})) {
             serviceAddressList.add(serviceAddress);
-            providerDto.setServiceAddressList(serviceAddressList);
+            provider.setServiceAddressList(serviceAddressList);
         }
 
-        return providerDto;
+        return provider;
     }
 
     public static ServiceAddress buildAddress(Row row) {
         ServiceAddress serviceAddress = new ServiceAddress();
-        String address = row.getCell(2).getStringCellValue();
-        String address1 = row.getCell(3).getStringCellValue();
-        String city = row.getCell(4).getStringCellValue();
-        String state = row.getCell(5).getStringCellValue();
-        String zip = row.getCell(6).getStringCellValue();
         Country country = new Country();
         country.setCode("US");
         CountryRegion countryRegion = new CountryRegion();
-        countryRegion.setCode(state);
+        countryRegion.setCode(row.getCell(5).getStringCellValue());
         serviceAddress.setCountry(country);
         serviceAddress.setCountryRegion(countryRegion);
-        serviceAddress.setStreet(address);
-        serviceAddress.setHouseNumber(address1);
-        serviceAddress.setCity(city);
-        serviceAddress.setPostalCode(zip);
-        serviceAddress.setStartDate("2022-01-01");
+        serviceAddress.setStreet(row.getCell(2).getStringCellValue());
+        serviceAddress.setHouseNumber(row.getCell(3).getStringCellValue());
+        serviceAddress.setCity(row.getCell(4).getStringCellValue());
+        serviceAddress.setPostalCode(row.getCell(6).getStringCellValue());
+        String startDate = row.getCell(10).getStringCellValue();
+        serviceAddress.setStartDate(DateFormatConversion.convertDateToOhiFormat(startDate));
         return serviceAddress;
     }
 

@@ -80,58 +80,35 @@ public class OHIProviderService {
         Optional<ServiceAddress> optionalAddress = this.getServiceAddress(searchCriteria);
         return (optionalAddress.isPresent()) ? optionalAddress : ohiFeignClient.createServiceAddress(serviceAddress);
     }
-
-//    private static String getQueryString(ServiceAddress address) {
-//        List<String> conditions = new ArrayList<>();
-//        StringJoiner joiner = new StringJoiner(".and.");
-//
-//        if (StringUtils.isNoneEmpty(address.getStartDate())) {
-//            conditions.add("startDate.eq('%s')");
-//        }
-//        if (StringUtils.isNoneEmpty(address.getCity())) {
-//            conditions.add("city.eq('%s')");
-//        }
-//        if (StringUtils.isNoneEmpty(address.getPostalCode())) {
-//            conditions.add("postalCode.eq('%s')");
-//        }
-//        if (StringUtils.isNoneEmpty(address.getStreet())) {
-//            conditions.add("street.eq('%s')");
-//        }
-//        if (StringUtils.isNoneEmpty(address.getHouseNumber())) {
-//            conditions.add("houseNumber.eq('%s')");
-//        }
-//        if (!conditions.isEmpty()) {
-//            joiner.add(String.join(".and.", conditions));
-//        }
-//        return joiner.toString();
-//    }
-
     private static String getQueryString(ServiceAddress address) {
-        StringBuilder builder = new StringBuilder();
+        List<String> conditions = new ArrayList<>();
 
         if (StringUtils.isNoneEmpty(address.getStartDate())) {
-            builder.append("startDate.eq('%s')");
+            conditions.add("startDate.eq('%s')");
         }
         if (StringUtils.isNoneEmpty(address.getCity())) {
-            builder.append(".and.");
-            builder.append("city.eq('%s')");
+            conditions.add("city.eq('%s')");
         }
         if (StringUtils.isNoneEmpty(address.getPostalCode())) {
-            builder.append(".and.");
-            builder.append("postalCode.eq('%s')");
+            conditions.add("postalCode.eq('%s')");
         }
         if (StringUtils.isNoneEmpty(address.getStreet())) {
-            builder.append(".and.");
-            builder.append("street.eq('%s')");
+            conditions.add("street.eq('%s')");
         }
         if (StringUtils.isNoneEmpty(address.getHouseNumber())) {
-            builder.append(".and.");
-            builder.append("houseNumber.eq('%s')");
+            conditions.add("houseNumber.eq('%s')");
         }
-        String query = String.format(builder.toString(), address.getStartDate(), address.getCity(),
-                address.getPostalCode(), address.getStreet(), address.getHouseNumber());
-        return query;
+
+        StringJoiner joiner = new StringJoiner(".and.");
+        for (String condition : conditions) {
+            joiner.add(condition);
+        }
+
+        String query = joiner.toString();
+        return String.format(query, address.getStartDate(), address.getCity(), address.getPostalCode(),
+                address.getStreet(), address.getHouseNumber());
     }
+
 
 
     @Cacheable(value = "programsCache", key = "#result ?: 'nullResult'")
