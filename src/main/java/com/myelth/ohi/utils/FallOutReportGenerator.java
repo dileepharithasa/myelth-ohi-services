@@ -11,8 +11,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-public class ExcelGenerator {
-    private ExcelGenerator(){
+public class FallOutReportGenerator {
+    private FallOutReportGenerator(){
 
     }
 

@@ -10,7 +10,7 @@ import com.myelth.ohi.model.*;
 import com.myelth.ohi.model.response.ApiItem;
 import com.myelth.ohi.model.response.ApiResponse;
 import com.myelth.ohi.utils.DomainBuilder;
-import com.myelth.ohi.utils.ExcelGenerator;
+import com.myelth.ohi.utils.FallOutReportGenerator;
 import feign.FeignException;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -79,7 +79,7 @@ public class OHIProviderService {
 
             });
             if(CollectionUtils.isNotEmpty(errorResponses)){
-                ExcelGenerator.generateProviderFallOut(errorResponses);
+                FallOutReportGenerator.generateProviderFallOut(errorResponses);
             }
 
             return successResponses;
