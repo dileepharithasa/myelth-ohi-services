@@ -9,8 +9,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 @Builder
-public class ApiError  {
+public class ApiError<T>  {
     private String code;
     private String message;
     private String status;
+    private T data;
+
 }

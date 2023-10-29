@@ -1,13 +1,19 @@
 package com.myelth.ohi.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.myelth.ohi.exceptions.ApiError;
+import com.myelth.ohi.exceptions.JsonProcessingCustomException;
 import com.myelth.ohi.external.OhiFeignClient;
 import com.myelth.ohi.model.*;
 import com.myelth.ohi.model.response.ApiItem;
 import com.myelth.ohi.model.response.ApiResponse;
 import com.myelth.ohi.utils.DomainBuilder;
+import com.myelth.ohi.utils.ExcelGenerator;
+import feign.FeignException;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -15,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,27 +41,72 @@ public class OHIProviderService {
     @Autowired
     private OHIProviderService selfOhiService;
 
-    public List<Optional<Provider>> createProviders(List<Provider> providerList){
-        return providerList.stream()
-                .map(provider -> {
-                    if(StringUtils.equals("P", provider.getBSC_PROVIDER_TYPE().getValue())) {
-                      List<RenderingAddress> renderingAddressList = new ArrayList<>();
-                        provider.getRenderingAddressList().forEach(r->{
-                            RenderingAddress reD = new RenderingAddress();
-                            reD.setStartDate(r.getStartDate());
+    public List<Provider> createProviders(List<Provider> providerList){
+        List<Provider> successResponses = new ArrayList<>();
+        List<ApiError> errorResponses = new ArrayList<>();
+            providerList.stream().forEach( provider->{
+                if(StringUtils.equals("P", provider.getBSC_PROVIDER_TYPE().getValue())) {
+                    List<RenderingAddress> renderingAddressList = new ArrayList<>();
+                    provider.getRenderingAddressList().forEach(r->{
+                        RenderingAddress reD = new RenderingAddress();
+                        reD.setStartDate(r.getStartDate());
 
-                                    Optional<ServiceAddress> serviceAddressOptional = this.createServiceAddress(r.getServiceAddress());
-                            if(serviceAddressOptional.isPresent()){
-                                reD.setServiceAddress(ServiceAddress.builder().id(serviceAddressOptional.get().getId()).startDate(serviceAddressOptional.get().getStartDate()).build());
-                            }
-                            renderingAddressList.add(reD);
-                        });
-                        provider.setRenderingAddressList(renderingAddressList);
-                        return ohiFeignClient.createIndividualProviders(provider);
+                        Optional<ServiceAddress> serviceAddressOptional = this.createServiceAddress(r.getServiceAddress());
+                        if(serviceAddressOptional.isPresent()){
+                            reD.setServiceAddress(ServiceAddress.builder().id(serviceAddressOptional.get().getId()).startDate(serviceAddressOptional.get().getStartDate()).build());
+                        }
+                        renderingAddressList.add(reD);
+                    });
+                    provider.setRenderingAddressList(renderingAddressList);
+                    try {
+                        Optional<Provider> providerResponse = ohiFeignClient.createIndividualProviders(provider);
+                        providerResponse.ifPresent(providerCreated -> successResponses.add(providerCreated));
+
+                    }catch (FeignException.UnprocessableEntity ex){
+                        buildFailureResponse(ex,provider);
+                        Optional.ofNullable(buildFailureResponse(ex, provider))
+                                .ifPresent(errorResponses::add);
                     }
-                    return ohiFeignClient.createOrganizationProviders(provider);
-                })
-                .collect(Collectors.toList());
+                }
+                try {
+                    Optional<Provider> providerResponse = ohiFeignClient.createOrganizationProviders(provider);
+                    providerResponse.ifPresent(providerCreated -> successResponses.add(providerCreated));
+                }catch (FeignException.UnprocessableEntity ex){
+                    Optional.ofNullable(buildFailureResponse(ex, provider))
+                            .ifPresent(errorResponses::add);
+
+                }
+
+            });
+            if(CollectionUtils.isNotEmpty(errorResponses)){
+                ExcelGenerator.generateProviderFallOut(errorResponses);
+            }
+
+            return successResponses;
+    }
+
+    private ApiError buildFailureResponse(FeignException.UnprocessableEntity ex, Provider provider) {
+        ApiError apiException = null;
+        String responseBody = ex.contentUTF8();
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode jsonNode;
+        try {
+            jsonNode = objectMapper.readTree(responseBody);
+        } catch (JsonProcessingException e) {
+            throw new JsonProcessingCustomException("Error processing JSON response", e);
+
+        }
+        JsonNode errorDetails = jsonNode.path("o:errorDetails");
+        if (errorDetails.isArray() && errorDetails.size() > 0) {
+            JsonNode firstError = errorDetails.get(0);
+            String errorCode = firstError.path("o:errorCode").asText();
+            String errorMessage = StringUtils.isNotEmpty(firstError.path("o:title").asText())? firstError.path("o:title").asText() : firstError.path("title").asText();
+            errorMessage = StringEscapeUtils.unescapeHtml4(errorMessage);
+            apiException = ApiError.builder().code(errorCode).
+                    message(errorMessage).status(HttpStatus.UNPROCESSABLE_ENTITY.toString()).build();
+        }
+        apiException.setData(provider);
+        return apiException;
     }
 
     public Optional<Provider> createProvider(Provider provider) {
@@ -67,8 +119,7 @@ public class OHIProviderService {
         return ohiFeignClient.createIndividualProviders(provider);
     }
     public Optional<ServiceAddress> getServiceAddress(SearchCriteria searchCriteria) {
-        Optional<ServiceAddress> serviceAddress = ohiFeignClient.getServiceAddress(searchCriteria);
-        return serviceAddress;
+        return  ohiFeignClient.getServiceAddress(searchCriteria);
     }
 
     public Optional<ServiceAddress> createServiceAddress(ServiceAddress serviceAddress) {
@@ -112,14 +163,19 @@ public class OHIProviderService {
 
 
     @Cacheable(value = "programsCache", key = "#result ?: 'nullResult'")
-    public Map<String, Program> getCachedProviderGroups() throws JsonProcessingException {
+    public Map<String, Program> getCachedProviderGroups() {
         Resource resource = new Resource();
         resource.setQ("");
         SearchCriteria searchCriteria = new SearchCriteria();
         searchCriteria.setResource(resource);
         ResponseEntity<String> response = ohiFeignClient.getProviderGroups(searchCriteria);
         String jsonResponse = response.getBody();
-        ApiResponse apiResponse = new ObjectMapper().readValue(jsonResponse, ApiResponse.class);
+        ApiResponse apiResponse = null;
+        try {
+            apiResponse = new ObjectMapper().readValue(jsonResponse, ApiResponse.class);
+        } catch (JsonProcessingException e) {
+            throw new JsonProcessingCustomException("Error processing JSON response", e);
+        }
         List<ApiItem> apiItems = apiResponse.getItems();
         List<Program> ps = apiItems.stream().map(apiItem -> new ObjectMapper().convertValue(apiItem, Program.class))
                 .collect(Collectors.toList());
@@ -132,9 +188,9 @@ public class OHIProviderService {
         return programMap != null ? programMap : Collections.emptyMap();
     }
 
-    public List<Optional<Provider>> loadProvidersToOhi(List<MultipartFile> files) throws Exception {
+    public List<Provider> loadProvidersToOhi(List<MultipartFile> files)  {
         List<DomainObject<?>> listToPopulate = new ArrayList<>();
-        List<Provider> providerListToSave = new ArrayList<>();
+        List<Provider> providerListToSave ;
         List<Payee> payeeList = new ArrayList<>();
         List<ProviderProgram> providerProgramList = new ArrayList<>();
 
@@ -143,65 +199,17 @@ public class OHIProviderService {
         }
         Map<String, Provider> providerRequestMap = new HashMap<>();
         for (MultipartFile file : files) {
-
-            String fileName = file.getOriginalFilename();
-            try (InputStream inputStream = file.getInputStream()) {
-                Workbook workbook = new XSSFWorkbook(inputStream);
-                Sheet sheet = workbook.getSheetAt(0);
-                final boolean[] flag = {Boolean.TRUE};
-                for (Row row : sheet) {
-                    if (flag[0]) {
-                        flag[0] = Boolean.FALSE;
-                        continue;
-                    }
-                    boolean isRowEmpty = StreamSupport.stream(row.spliterator(), false)
-                            .allMatch(cell -> cell.getCellType() == CellType.BLANK || cell.getCellType() == CellType._NONE);
-
-                    if (!isRowEmpty) {
-                        DomainObject<?> domainObject = populateDomainObject(row, fileName);
-                        if (domainObject != null) {
-                            listToPopulate.add(domainObject);
-                            if (domainObject.getObject() instanceof Provider) {
-                                Provider providerReq = (Provider) domainObject.getObject();
-                                if(providerRequestMap.containsKey(providerReq.getId())){
-                                    Provider updatedProviderReq  = providerRequestMap.get(providerReq.getId());
-                                    updatedProviderReq.getRenderingAddressList().addAll(providerReq.getRenderingAddressList());
-                                    providerRequestMap.put(providerReq.getId(), updatedProviderReq);
-                                }else {
-                                    providerRequestMap.put(providerReq.getId(), providerReq);
-                                }
-                            } else if (domainObject.getObject() instanceof Payee) {
-                                payeeList.add((Payee) domainObject.getObject());
-                            }else if (domainObject.getObject() instanceof ProviderProgram) {
-                                providerProgramList.add((ProviderProgram) domainObject.getObject());
-                            }
-                        }
-                    }
-                }
-            } catch (IOException e) {
-                throw new Exception("Error in file processing");
-            }
+            loadProviderFromFile(listToPopulate, payeeList, providerProgramList, providerRequestMap, file);
         }
         providerListToSave = new ArrayList<>(providerRequestMap.values());
         List<Payee> payeesTobeUpdated = new ArrayList<>();
         ArrayList<ProviderProgram> providerProgramsTobeUpdated = new ArrayList<>();
         Map<String, Program> programsCachedMap = selfOhiService.getCachedProviderGroups();
 
-        payeeList.forEach(payee->{
-            if(programsCachedMap.containsKey(payee.getProgramName())){
-                Program cachedProgram = programsCachedMap.get(payee.getProgramName());
-                payee.setProgramID(cachedProgram.getCode());
-            }
-        });
+        programDataLookupForPayee(payeeList, programsCachedMap);
         Map<String, List<Payee>> payeeMap = payeeList.stream().collect(Collectors.groupingBy(Payee::getProviderId));
 
-        providerProgramList.forEach(providerProgram->{
-            if(programsCachedMap.containsKey(providerProgram.getProgramName())){
-                Program cachedProgram = programsCachedMap.get(providerProgram.getProgramName());
-                providerProgram.setProviderGroup(ProviderGroup.builder().id(cachedProgram.getId()).build());
-                providerProgram.setProgramId(cachedProgram.getId());
-            }
-        });
+        programDataLookupForProviderGroup(providerProgramList, programsCachedMap);
         Map<String, List<ProviderProgram>> providerProgramMap = providerProgramList.stream().collect(Collectors.groupingBy(ProviderProgram::getProviderId));
         providerListToSave.forEach(provider -> {
             String key = provider.getCode();
@@ -219,6 +227,68 @@ public class OHIProviderService {
         });
         return this.createProviders(providerListToSave);
     }
+
+    private static void programDataLookupForProviderGroup(List<ProviderProgram> providerProgramList, Map<String, Program> programsCachedMap) {
+        providerProgramList.forEach(providerProgram->{
+            if(programsCachedMap.containsKey(providerProgram.getProgramName())){
+                Program cachedProgram = programsCachedMap.get(providerProgram.getProgramName());
+                providerProgram.setProviderGroup(ProviderGroup.builder().id(cachedProgram.getId()).build());
+                providerProgram.setProgramId(cachedProgram.getId());
+            }
+        });
+    }
+
+    private static void programDataLookupForPayee(List<Payee> payeeList, Map<String, Program> programsCachedMap) {
+        payeeList.forEach(payee->{
+            if(programsCachedMap.containsKey(payee.getProgramName())){
+                Program cachedProgram = programsCachedMap.get(payee.getProgramName());
+                payee.setProgramID(cachedProgram.getCode());
+            }
+        });
+    }
+
+    private void loadProviderFromFile(List<DomainObject<?>> listToPopulate, List<Payee> payeeList, List<ProviderProgram> providerProgramList, Map<String, Provider> providerRequestMap, MultipartFile file) {
+        String fileName = file.getOriginalFilename();
+        try (InputStream inputStream = file.getInputStream()) {
+            Workbook workbook = new XSSFWorkbook(inputStream);
+            Sheet sheet = workbook.getSheetAt(0);
+            boolean flag = Boolean.TRUE;
+            for (Row row : sheet) {
+                if (flag) {
+                    flag = Boolean.FALSE;
+                    continue;
+                }
+                boolean isRowEmpty = StreamSupport.stream(row.spliterator(), false)
+                        .allMatch(cell -> cell.getCellType() == CellType.BLANK || cell.getCellType() == CellType._NONE);
+                if (!isRowEmpty) {
+                    processEachRow(listToPopulate, payeeList, providerProgramList, providerRequestMap, fileName, row);
+                }
+            }
+        } catch (IOException e) {
+           //error
+        }
+    }
+
+    private void processEachRow(List<DomainObject<?>> listToPopulate, List<Payee> payeeList, List<ProviderProgram> providerProgramList, Map<String, Provider> providerRequestMap, String fileName, Row row) {
+        DomainObject<?> domainObject = populateDomainObject(row, fileName);
+        if (domainObject != null) {
+            listToPopulate.add(domainObject);
+            if (domainObject.getObject() instanceof Provider) {
+                Provider providerReq = (Provider) domainObject.getObject();
+                if(providerRequestMap.containsKey(providerReq.getId())){
+                    Provider updatedProviderReq  = providerRequestMap.get(providerReq.getId());
+                    updatedProviderReq.getRenderingAddressList().addAll(providerReq.getRenderingAddressList());
+                    providerRequestMap.put(providerReq.getId(), updatedProviderReq);
+                }else {
+                    providerRequestMap.put(providerReq.getId(), providerReq);
+                }
+            } else if (domainObject.getObject() instanceof Payee) {
+                payeeList.add((Payee) domainObject.getObject());
+            }else if (domainObject.getObject() instanceof ProviderProgram) {
+                providerProgramList.add((ProviderProgram) domainObject.getObject());
+            }
+        }
+    }
     private DomainObject<?> populateDomainObject(Row row, String fileName) {
         if (fileName.startsWith("Provider")) {
             Provider provider = DomainBuilder.buildProvider(row);
@@ -232,13 +302,6 @@ public class OHIProviderService {
         }
         return null;
     }
-    private static boolean isNotEmptyRow(Row row) {
-        for (Cell cell : row) {
-            if (cell.getCellType() != CellType.BLANK) {
-                return true;
-            }
-        }
-        return false;
-    }
+
 
 }
