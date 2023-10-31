@@ -25,7 +25,7 @@ public class DomainBuilder {
         String npi = row.getCell(7).getStringCellValue();
         provider.setNpi(npi);
         String tin = row.getCell(8).getStringCellValue();
-        provider.setBscTin(tin);
+        provider.setBscTIN(tin);
         provider.setValue(code);
         FlexCodeSystem flexCodeSystem = new FlexCodeSystem();
         flexCodeSystem.setId("291");
@@ -45,7 +45,7 @@ public class DomainBuilder {
         ProviderType providerType = new ProviderType();
         providerType.setValue(type);
         provider.setBSC_PROVIDER_TYPE(providerType);
-        providerType.setFlexCodeDefinitionCode("bsc_Provider_type");
+        providerType.setFlexCodeDefinitionCode("BSC_Provider_Type");
         ServiceAddress serviceAddress = buildAddress(row);
         List<ServiceAddress> serviceAddressList = new ArrayList<>();
         if (StringUtils.equalsAnyIgnoreCase("P", type)) {
@@ -146,7 +146,7 @@ public class DomainBuilder {
         ProviderProgram providerProgram = new ProviderProgram();
         providerProgram.setProviderId(row.getCell(0).getStringCellValue());
         providerProgram.setProgramName(row.getCell(1).getStringCellValue());
-        providerProgram.setProceduralGroupType(row.getCell(2).getStringCellValue());
+        providerProgram.setProgramProceduralGroupType(row.getCell(2).getStringCellValue());
         providerProgram.setEffectiveDate(row.getCell(3).getStringCellValue());
         providerProgram.setTerminationDate(row.getCell(4).getStringCellValue());
         providerProgram.setLob(row.getCell(5).getStringCellValue());

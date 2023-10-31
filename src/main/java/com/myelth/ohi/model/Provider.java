@@ -27,7 +27,7 @@ public class Provider implements Serializable {
     private String flexCodeDefinitionCode;
     private String value;
     private String suffix;
-    private String bscTin;
+    private String bscTIN;
     private String npi;
     private String objectLastUpdatedBy;
     private String objectVersionNumber;

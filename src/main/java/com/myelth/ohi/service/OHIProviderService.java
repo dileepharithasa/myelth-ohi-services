@@ -44,16 +44,16 @@ public class OHIProviderService {
     public List<Provider> createProviders(List<Provider> providerList){
         List<Provider> successResponses = new ArrayList<>();
         List<ApiError> errorResponses = new ArrayList<>();
-            providerList.stream().forEach( provider->{
-                if(StringUtils.equals("P", provider.getBSC_PROVIDER_TYPE().getValue())) {
+            providerList.stream().forEach( provider-> {
+                if (StringUtils.equals("P", provider.getBSC_PROVIDER_TYPE().getValue())) {
                     List<RenderingAddress> renderingAddressList = new ArrayList<>();
-                    provider.getRenderingAddressList().forEach(r->{
+                    provider.getRenderingAddressList().forEach(r -> {
                         RenderingAddress reD = new RenderingAddress();
                         reD.setStartDate(r.getStartDate());
 
                         Optional<ServiceAddress> serviceAddressOptional = this.createServiceAddress(r.getServiceAddress());
-                        if(serviceAddressOptional.isPresent()){
-                            reD.setServiceAddress(ServiceAddress.builder().id(serviceAddressOptional.get().getId()).startDate(serviceAddressOptional.get().getStartDate()).build());
+                        if (serviceAddressOptional.isPresent()) {
+                            reD.setServiceAddress(serviceAddressOptional.get());
                         }
                         renderingAddressList.add(reD);
                     });
@@ -62,21 +62,22 @@ public class OHIProviderService {
                         Optional<Provider> providerResponse = ohiFeignClient.createIndividualProviders(provider);
                         providerResponse.ifPresent(providerCreated -> successResponses.add(providerCreated));
 
-                    }catch (FeignException.UnprocessableEntity ex){
-                        buildFailureResponse(ex,provider);
+                    } catch (FeignException.UnprocessableEntity ex) {
+                        buildFailureResponse(ex, provider);
                         Optional.ofNullable(buildFailureResponse(ex, provider))
                                 .ifPresent(errorResponses::add);
                     }
-                }
-                try {
-                    Optional<Provider> providerResponse = ohiFeignClient.createOrganizationProviders(provider);
-                    providerResponse.ifPresent(providerCreated -> successResponses.add(providerCreated));
-                }catch (FeignException.UnprocessableEntity ex){
-                    Optional.ofNullable(buildFailureResponse(ex, provider))
-                            .ifPresent(errorResponses::add);
+                } else {
+                    try {
+                        Optional<Provider> providerResponse = ohiFeignClient.createOrganizationProviders(provider);
+                        providerResponse.ifPresent(providerCreated -> successResponses.add(providerCreated));
+                    } catch (FeignException.UnprocessableEntity ex) {
+                        Optional.ofNullable(buildFailureResponse(ex, provider))
+                                .ifPresent(errorResponses::add);
+
+                    }
 
                 }
-
             });
             if(CollectionUtils.isNotEmpty(errorResponses)){
                 FallOutReportGenerator.generateProviderFallOut(errorResponses);
@@ -275,12 +276,12 @@ public class OHIProviderService {
             listToPopulate.add(domainObject);
             if (domainObject.getObject() instanceof Provider) {
                 Provider providerReq = (Provider) domainObject.getObject();
-                if(providerRequestMap.containsKey(providerReq.getId())){
-                    Provider updatedProviderReq  = providerRequestMap.get(providerReq.getId());
+                if(providerRequestMap.containsKey(providerReq.getCode())){
+                    Provider updatedProviderReq  = providerRequestMap.get(providerReq.getCode());
                     updatedProviderReq.getRenderingAddressList().addAll(providerReq.getRenderingAddressList());
-                    providerRequestMap.put(providerReq.getId(), updatedProviderReq);
+                    providerRequestMap.put(providerReq.getCode(), updatedProviderReq);
                 }else {
-                    providerRequestMap.put(providerReq.getId(), providerReq);
+                    providerRequestMap.put(providerReq.getCode(), providerReq);
                 }
             } else if (domainObject.getObject() instanceof Payee) {
                 payeeList.add((Payee) domainObject.getObject());
