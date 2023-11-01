@@ -1,6 +1,7 @@
 package com.myelth.ohi.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -35,6 +36,7 @@ public class Provider implements Serializable {
     private FunctionDynamicLogic functionDynamicLogic;
     private Language language;
     private List<RenderingAddress> renderingAddressList = null;
+    @JsonProperty("BSC_PROVIDER_TYPE")
     private ProviderType BSC_PROVIDER_TYPE;
     private List<Payee> payee_details_page_new;
     private List<ProviderProgram> providerGroupAffiliationList;
