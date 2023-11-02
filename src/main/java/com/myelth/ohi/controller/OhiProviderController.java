@@ -13,7 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/ohi-providers")
-public class OHIProviderController {
+public class OhiProviderController {
     @Autowired
     OhiProviderServiceImpl ohiProviderService;
 
