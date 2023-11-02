@@ -1,6 +1,5 @@
-package com.myelth.ohi.service.impl;
+package com.myelth.ohi.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.myelth.ohi.model.Program;
 import com.myelth.ohi.model.Provider;
 import com.myelth.ohi.model.SearchCriteria;
