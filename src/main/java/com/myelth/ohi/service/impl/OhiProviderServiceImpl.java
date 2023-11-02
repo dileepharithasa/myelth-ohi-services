@@ -9,6 +9,7 @@ import com.myelth.ohi.external.OhiFeignClient;
 import com.myelth.ohi.model.*;
 import com.myelth.ohi.model.response.ApiItem;
 import com.myelth.ohi.model.response.ApiResponse;
+import com.myelth.ohi.service.OhiProviderServiceInterface;
 import com.myelth.ohi.utils.DomainBuilder;
 import com.myelth.ohi.utils.FallOutReportGenerator;
 import feign.FeignException;
@@ -37,7 +38,7 @@ import java.util.stream.StreamSupport;
 
 @Service
 @Scope(proxyMode = ScopedProxyMode.TARGET_CLASS)
-public class OhiProviderServiceImpl implements OhiProviderServiceInterface{
+public class OhiProviderServiceImpl implements OhiProviderServiceInterface {
 
     @Autowired
     private OhiFeignClient ohiFeignClient;

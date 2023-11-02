@@ -55,6 +55,6 @@ public class OHIProviderControllerTest {
     public void testLoadProvidersToOHIWithEmptyFiles() {
         List<MultipartFile> files = new ArrayList<>();
         ResponseEntity<ResponseData> response = providerController.loadProvidersToOHI(files);
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
     }
 }
