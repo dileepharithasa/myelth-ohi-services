@@ -2,7 +2,7 @@ package com.myelth.ohi.controller;
 
 import com.myelth.ohi.model.Provider;
 import com.myelth.ohi.model.ResponseData;
-import com.myelth.ohi.service.OHIProviderService;
+import com.myelth.ohi.service.impl.OhiProviderServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +15,7 @@ import java.util.List;
 @RequestMapping("/ohi-providers")
 public class OHIProviderController {
     @Autowired
-    OHIProviderService ohiProviderService;
+    OhiProviderServiceImpl ohiProviderService;
 
     @PostMapping("/create")
     public ResponseEntity<ResponseData> createProviders(@RequestBody List<Provider> providers) {

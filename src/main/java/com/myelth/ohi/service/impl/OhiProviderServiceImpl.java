@@ -1,4 +1,4 @@
-package com.myelth.ohi.service;
+package com.myelth.ohi.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -15,7 +15,10 @@ import feign.FeignException;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
@@ -34,13 +37,14 @@ import java.util.stream.StreamSupport;
 
 @Service
 @Scope(proxyMode = ScopedProxyMode.TARGET_CLASS)
-public class OHIProviderService {
+public class OhiProviderServiceImpl implements OhiProviderServiceInterface{
 
     @Autowired
     private OhiFeignClient ohiFeignClient;
     @Autowired
-    private OHIProviderService selfOhiService;
+    private OhiProviderServiceImpl selfOhiService;
 
+    @Override
     public List<Provider> createProviders(List<Provider> providerList){
         List<Provider> successResponses = new ArrayList<>();
         List<ApiError> errorResponses = new ArrayList<>();
@@ -110,6 +114,7 @@ public class OHIProviderService {
         return apiException;
     }
 
+    @Override
     public Optional<Provider> createProvider(Provider provider) {
         ServiceAddress serviceAddress = provider.getRenderingAddressList().get(0).getServiceAddress();
        Optional<ServiceAddress> optionalServiceAddress =  createServiceAddress(serviceAddress);
@@ -119,10 +124,12 @@ public class OHIProviderService {
         }
         return ohiFeignClient.createIndividualProviders(provider);
     }
+    @Override
     public Optional<ServiceAddress> getServiceAddress(SearchCriteria searchCriteria) {
         return  ohiFeignClient.getServiceAddress(searchCriteria);
     }
 
+    @Override
     public Optional<ServiceAddress> createServiceAddress(ServiceAddress serviceAddress) {
         String query = getQueryString(serviceAddress);
         Resource resource = new Resource();
@@ -163,6 +170,7 @@ public class OHIProviderService {
 
 
 
+    @Override
     @Cacheable(value = "programsCache", key = "#result ?: 'nullResult'")
     public Map<String, Program> getCachedProviderGroups() {
         Resource resource = new Resource();
@@ -189,6 +197,7 @@ public class OHIProviderService {
         return programMap != null ? programMap : Collections.emptyMap();
     }
 
+    @Override
     public List<Provider> loadProvidersToOhi(List<MultipartFile> files)  {
         List<DomainObject<?>> listToPopulate = new ArrayList<>();
         List<Provider> providerListToSave ;
@@ -229,7 +238,7 @@ public class OHIProviderService {
         return this.createProviders(providerListToSave);
     }
 
-    private static void programDataLookupForProviderGroup(List<ProviderProgram> providerProgramList, Map<String, Program> programsCachedMap) {
+    private void programDataLookupForProviderGroup(List<ProviderProgram> providerProgramList, Map<String, Program> programsCachedMap) {
         providerProgramList.forEach(providerProgram->{
             if(programsCachedMap.containsKey(providerProgram.getProgramName())){
                 Program cachedProgram = programsCachedMap.get(providerProgram.getProgramName());
@@ -239,7 +248,7 @@ public class OHIProviderService {
         });
     }
 
-    private static void programDataLookupForPayee(List<Payee> payeeList, Map<String, Program> programsCachedMap) {
+    private void programDataLookupForPayee(List<Payee> payeeList, Map<String, Program> programsCachedMap) {
         payeeList.forEach(payee->{
             if(programsCachedMap.containsKey(payee.getProgramName())){
                 Program cachedProgram = programsCachedMap.get(payee.getProgramName());

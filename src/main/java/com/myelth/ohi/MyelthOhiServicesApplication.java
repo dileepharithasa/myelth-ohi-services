@@ -1,7 +1,7 @@
 package com.myelth.ohi;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.myelth.ohi.service.OHIProviderService;
+import com.myelth.ohi.service.impl.OhiProviderServiceImpl;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -15,7 +15,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 public class MyelthOhiServicesApplication {
 
 	@Autowired
-	private OHIProviderService ohiProviderService;
+	private OhiProviderServiceImpl ohiProviderService;
 
 	public static void main(String[] args) {
 		SpringApplication.run(MyelthOhiServicesApplication.class, args);
